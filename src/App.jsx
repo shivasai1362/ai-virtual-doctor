@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { AuthProvider } from './contexts/AuthContext'
 import Header from './components/Header'
 import ChatBot from './components/ChatBot'
 import SkinDiseaseUpload from './components/SkinDiseaseUpload'
@@ -8,11 +9,12 @@ function App() {
   const [activeTab, setActiveTab] = useState('chat')
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <Header />
-      
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+    <AuthProvider>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+        <Header />
+        
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
@@ -212,7 +214,8 @@ function App() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </AuthProvider>
   )
 }
 
