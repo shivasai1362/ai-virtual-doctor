@@ -1,17 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import useAudioRecorder from '../hooks/useAudioRecorder';
+
+// Medical Knowledge Base
+const medicalKnowledgeBase = {
+  diabetes: {
+    condition: "Diabetes Mellitus",
+    symptoms: ["Increased thirst", "Frequent urination", "Extreme fatigue", "Blurred vision", "Slow-healing cuts", "Weight loss (Type 1)", "Tingling in hands/feet"],
+    causes: ["Genetic factors", "Autoimmune destruction of beta cells (Type 1)", "Insulin resistance (Type 2)", "Obesity", "Sedentary lifestyle", "Age over 45"],
+    treatments: ["Insulin therapy", "Metformin", "Blood glucose monitoring", "Dietary modifications", "Regular exercise", "Weight management"],
+    recommendations: ["Monitor blood sugar regularly", "Follow diabetic diet", "Exercise 150 minutes/week", "Regular medical checkups", "Foot care", "Eye examinations"]
+  },
+  hypertension: {
+    condition: "High Blood Pressure (Hypertension)",
+    symptoms: ["Often no symptoms (silent killer)", "Headaches", "Shortness of breath", "Nosebleeds", "Chest pain", "Vision problems"],
+    causes: ["Family history", "Age", "Obesity", "High sodium intake", "Lack of exercise", "Stress", "Smoking", "Alcohol consumption"],
+    treatments: ["ACE inhibitors", "Beta-blockers", "Diuretics", "Calcium channel blockers", "Lifestyle modifications"],
+    recommendations: ["Reduce sodium intake", "Regular exercise", "Maintain healthy weight", "Limit alcohol", "Quit smoking", "Stress management"]
+  },
+  migraine: {
+    condition: "Migraine Headaches",
+    symptoms: ["Severe throbbing headache", "Nausea and vomiting", "Sensitivity to light", "Sensitivity to sound", "Visual aura", "Dizziness"],
+    causes: ["Genetic predisposition", "Hormonal changes", "Stress", "Certain foods", "Sleep changes", "Weather changes", "Strong smells"],
+    treatments: ["Triptans", "NSAIDs", "Anti-nausea medications", "Preventive medications", "Botox injections", "CGRP inhibitors"],
+    recommendations: ["Identify triggers", "Maintain regular sleep schedule", "Stay hydrated", "Manage stress", "Regular meals", "Avoid known triggers"]
+  },
+  aspirin: {
+    condition: "Aspirin (Drug Information)",
+    symptoms: ["Used for pain relief", "Anti-inflammatory", "Fever reduction", "Blood thinning"],
+    causes: ["Pain conditions", "Inflammation", "Cardiovascular protection", "Stroke prevention"],
+    treatments: ["Low-dose for heart protection", "Regular dose for pain", "Enteric-coated formulations"],
+    recommendations: ["Take with food", "Avoid if allergic", "Consult doctor for long-term use", "Monitor for bleeding", "Avoid with certain medications"]
+  },
+  fever: {
+    condition: "Fever",
+    symptoms: ["Elevated body temperature (>100.4°F)", "Chills", "Sweating", "Headache", "Muscle aches", "Fatigue", "Loss of appetite"],
+    causes: ["Viral infections", "Bacterial infections", "Inflammatory conditions", "Heat exhaustion", "Medications", "Vaccines"],
+    treatments: ["Acetaminophen", "Ibuprofen", "Rest", "Hydration", "Cool compresses", "Treat underlying cause"],
+    recommendations: ["Stay hydrated", "Rest", "Monitor temperature", "Seek medical care if >103°F", "Avoid aspirin in children", "Light clothing"]
+  },
+  anxiety: {
+    condition: "Anxiety Disorders",
+    symptoms: ["Excessive worry", "Restlessness", "Fatigue", "Difficulty concentrating", "Muscle tension", "Sleep disturbances", "Panic attacks"],
+    causes: ["Genetic factors", "Brain chemistry", "Stress", "Trauma", "Medical conditions", "Substance use", "Personality factors"],
+    treatments: ["Cognitive behavioral therapy", "SSRIs", "Benzodiazepines (short-term)", "Beta-blockers", "Relaxation techniques", "Mindfulness"],
+    recommendations: ["Regular exercise", "Stress management", "Adequate sleep", "Limit caffeine", "Practice mindfulness", "Social support"]
+  },
+  depression: {
+    condition: "Depression",
+    symptoms: ["Persistent sadness", "Loss of interest", "Fatigue", "Sleep changes", "Appetite changes", "Difficulty concentrating", "Feelings of worthlessness"],
+    causes: ["Genetic factors", "Brain chemistry", "Life events", "Medical conditions", "Medications", "Substance abuse", "Hormonal changes"],
+    treatments: ["Antidepressants", "Psychotherapy", "ECT (severe cases)", "Light therapy", "Exercise therapy", "Support groups"],
+    recommendations: ["Regular exercise", "Healthy sleep schedule", "Social connections", "Stress management", "Avoid alcohol/drugs", "Professional help"]
+  }
+};
 
 const ChatBot = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hello! I'm your AI Virtual Doctor. How can I help you today?",
+      text: "Hello! I'm your Medical AI Assistant with built-in medical knowledge. I can help you with medical information, symptoms analysis, drug interactions, and health-related queries. You can type or use voice input. Please note that I provide informational content only and cannot replace professional medical advice. How can I assist you today?",
       sender: 'bot',
       timestamp: new Date().toLocaleTimeString()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const messagesEndRef = useRef(null);
 
   const { 
     isRecording, 
@@ -20,6 +74,91 @@ const ChatBot = () => {
     stopRecording, 
     transcribeAudio 
   } = useAudioRecorder();
+
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Function to generate medical responses
+  const generateMedicalResponse = (query) => {
+    const lowerQuery = query.toLowerCase();
+
+    // Find matching medical condition
+    let matchedCondition = null;
+
+    for (const [key, condition] of Object.entries(medicalKnowledgeBase)) {
+      if (lowerQuery.includes(key) ||
+          lowerQuery.includes(condition.condition.toLowerCase()) ||
+          condition.symptoms.some(symptom => lowerQuery.includes(symptom.toLowerCase())) ||
+          condition.causes.some(cause => lowerQuery.includes(cause.toLowerCase()))) {
+        matchedCondition = condition;
+        break;
+      }
+    }
+
+    if (matchedCondition) {
+      return `📋 Medical Information:
+
+🏥 Condition/Topic: ${matchedCondition.condition}
+
+🔍 Symptoms:
+${matchedCondition.symptoms.map(symptom => `• ${symptom}`).join('\n')}
+
+⚠️ Causes/Risk Factors:
+${matchedCondition.causes.map(cause => `• ${cause}`).join('\n')}
+
+💊 Treatment Options:
+${matchedCondition.treatments.map(treatment => `• ${treatment}`).join('\n')}
+
+📝 Recommendations:
+${matchedCondition.recommendations.map(rec => `• ${rec}`).join('\n')}
+
+⚡ Important Note: This information is for educational purposes only. Always consult with a healthcare professional for proper diagnosis and treatment.`;
+    }
+
+    // Check for general medical queries
+    if (lowerQuery.includes('emergency') || lowerQuery.includes('urgent') || lowerQuery.includes('911')) {
+      return `🚨 Emergency Information:
+
+If you're experiencing a medical emergency, please:
+• Call 911 immediately (US)
+• Go to the nearest emergency room
+• Contact your local emergency services
+
+Common emergency symptoms:
+• Chest pain or difficulty breathing
+• Severe allergic reactions
+• Loss of consciousness
+• Severe bleeding
+• Stroke symptoms (FAST: Face, Arms, Speech, Time)
+
+This AI assistant cannot provide emergency medical care. Please seek immediate professional help for urgent medical situations.`;
+    }
+
+    // General medical response for unmatched queries
+    return `🏥 Medical Information:
+
+📋 Query: ${query}
+
+💡 General Medical Guidance:
+• I can provide information about common conditions like diabetes, hypertension, migraines, fever, anxiety, depression, and medications like aspirin
+• For specific symptoms, please describe them in detail
+• Common topics I can help with: symptoms, causes, treatments, and general recommendations
+
+📚 Available Topics:
+• Diabetes and blood sugar management
+• Hypertension (high blood pressure)  
+• Migraine headaches
+• Fever and temperature management
+• Anxiety and stress management
+• Depression and mental health
+• Aspirin and drug interactions
+
+⚠️ Important Note: This is a medical information system. For urgent medical concerns, please contact a healthcare provider immediately. This information cannot replace professional medical advice.
+
+💭 Suggestion: Try asking about specific conditions like "diabetes symptoms", "migraine treatment", or "anxiety management" for detailed information.`;
+  };
 
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
@@ -30,18 +169,32 @@ const ChatBot = () => {
         timestamp: new Date().toLocaleTimeString()
       };
       setMessages([...messages, newMessage]);
+      const currentInput = inputMessage;
       setInputMessage('');
       
-      // Simulate bot response
+      // Generate medical response based on knowledge base
       setTimeout(() => {
-        const botResponse = {
-          id: messages.length + 2,
-          text: "Thank you for your message. I'm processing your query and will provide medical guidance shortly.",
-          sender: 'bot',
-          timestamp: new Date().toLocaleTimeString()
-        };
-        setMessages(prev => [...prev, botResponse]);
-      }, 1000);
+        try {
+          const botResponseText = generateMedicalResponse(currentInput);
+          
+          const botResponse = {
+            id: messages.length + 2,
+            text: botResponseText,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString()
+          };
+          setMessages(prev => [...prev, botResponse]);
+        } catch (error) {
+          console.error('Error generating response:', error);
+          const errorResponse = {
+            id: messages.length + 2,
+            text: "Sorry, I encountered an error while processing your medical query. Please try again or rephrase your question.",
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString()
+          };
+          setMessages(prev => [...prev, errorResponse]);
+        }
+      }, 1000 + Math.random() * 1000); // Random delay between 1-2 seconds
     }
   };
 
@@ -73,7 +226,7 @@ const ChatBot = () => {
               // Show success message
               const successMessage = {
                 id: messages.length + 2,
-                text: "✅ Voice message transcribed successfully! You can edit the text before sending.",
+                text: "✅ Voice message transcribed successfully! You can edit the text before sending or press Enter to send immediately.",
                 sender: 'system',
                 timestamp: new Date().toLocaleTimeString()
               };
@@ -186,16 +339,17 @@ const ChatBot = () => {
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-lg border border-gray-200">
       {/* Chat Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 rounded-t-lg">
+      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-4 rounded-t-lg">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold text-lg">AI Virtual Doctor</h3>
-            <p className="text-blue-100 text-sm">Online • Ready to help</p>
+            <h3 className="font-semibold text-lg">🏥 Medical AI Assistant</h3>
+            <p className="text-green-100 text-sm">Online • Medical Knowledge Base Ready</p>
           </div>
         </div>
       </div>
@@ -216,16 +370,16 @@ const ChatBot = () => {
             <div
               className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 message.sender === 'user'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-green-600 text-white'
                   : message.sender === 'system'
                   ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                   : 'bg-gray-100 text-gray-800'
               }`}
             >
-              <p className="text-sm">{message.text}</p>
+              <p className="text-sm whitespace-pre-line">{message.text}</p>
               <p className={`text-xs mt-1 ${
                 message.sender === 'user' 
-                  ? 'text-blue-100' 
+                  ? 'text-green-100' 
                   : message.sender === 'system'
                   ? 'text-yellow-600'
                   : 'text-gray-500'
@@ -265,8 +419,8 @@ const ChatBot = () => {
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Type your health concern here or use voice input..."
-              className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Ask about symptoms, conditions, medications, or medical information..."
+              className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               onKeyPress={(e) => e.key === 'Enter' && !voiceButtonState.disabled && handleSendMessage()}
               disabled={isRecording || isTranscribing}
             />
@@ -288,13 +442,15 @@ const ChatBot = () => {
           <button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim() || isRecording || isTranscribing}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
             </svg>
           </button>
         </div>
+        
+        <div ref={messagesEndRef} />
         
         {/* Voice Recording Status */}
         {isRecording && (
@@ -320,15 +476,15 @@ const ChatBot = () => {
           </div>
         )}
 
-        {/* Voice Recording Tips */}
+        {/* Medical Knowledge Tips */}
         {!isRecording && !isTranscribing && (
-          <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-700 font-medium mb-1">🎤 Voice Recording Tips:</p>
-            <ul className="text-xs text-blue-600 space-y-1">
-              <li>• Speak clearly and at normal pace</li>
-              <li>• Ensure you're in a quiet environment</li>
-              <li>• Allow microphone access when prompted</li>
-              <li>• Speak in your selected language: {
+          <div className="mt-3 p-3 bg-green-50 rounded-lg">
+            <p className="text-xs text-green-700 font-medium mb-1">� Medical Knowledge Base:</p>
+            <ul className="text-xs text-green-600 space-y-1">
+              <li>• Ask about conditions: diabetes, hypertension, migraines, fever, anxiety, depression</li>
+              <li>• Get medication info: aspirin, drug interactions, dosages</li>
+              <li>• Learn about symptoms, causes, treatments, and recommendations</li>
+              <li>• Use voice input in your selected language: {
                 selectedLanguage === 'en' ? 'English' :
                 selectedLanguage === 'hi' ? 'Hindi' :
                 selectedLanguage === 'bn' ? 'Bengali' :
@@ -340,6 +496,7 @@ const ChatBot = () => {
                 selectedLanguage === 'ml' ? 'Malayalam' :
                 selectedLanguage === 'pa' ? 'Punjabi' : 'English'
               }</li>
+              <li>• ⚠️ For emergencies, call 911 or contact emergency services immediately</li>
             </ul>
           </div>
         )}
