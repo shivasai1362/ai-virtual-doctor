@@ -65,7 +65,9 @@ const ChatBot = () => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const { 
     isRecording, 
@@ -75,10 +77,21 @@ const ChatBot = () => {
     transcribeAudio 
   } = useAudioRecorder();
 
-  // Scroll to bottom when new messages are added
+  // Improved scroll to bottom - only when new messages are added and user is near bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (shouldAutoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, shouldAutoScroll]);
+
+  // Check if user is near bottom of chat
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setShouldAutoScroll(isNearBottom);
+    }
+  };
 
   // Function to generate medical responses
   const generateMedicalResponse = (query) => {
@@ -172,6 +185,9 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
       const currentInput = inputMessage;
       setInputMessage('');
       
+      // Enable auto-scroll when user sends a message
+      setShouldAutoScroll(true);
+      
       // Generate medical response based on knowledge base
       setTimeout(() => {
         try {
@@ -184,6 +200,7 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
             timestamp: new Date().toLocaleTimeString()
           };
           setMessages(prev => [...prev, botResponse]);
+          setShouldAutoScroll(true); // Enable auto-scroll for bot responses
         } catch (error) {
           console.error('Error generating response:', error);
           const errorResponse = {
@@ -193,6 +210,7 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
             timestamp: new Date().toLocaleTimeString()
           };
           setMessages(prev => [...prev, errorResponse]);
+          setShouldAutoScroll(true); // Enable auto-scroll for error responses
         }
       }, 1000 + Math.random() * 1000); // Random delay between 1-2 seconds
     }
@@ -324,7 +342,7 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
     }
     
     return {
-      className: 'bg-gray-200 text-gray-600 hover:bg-gray-300',
+      className: 'bg-slate-200 text-slate-600 hover:bg-slate-300 hover:text-slate-700 border border-slate-300 shadow-sm hover:shadow-md',
       icon: (
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
@@ -337,25 +355,39 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
   const voiceButtonState = getVoiceButtonState();
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg border border-gray-200">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-white border border-slate-200/60 rounded-xl shadow-xl shadow-slate-200/50 backdrop-blur-sm">
       {/* Chat Header */}
-      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-4 rounded-t-lg">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+      <div className="relative bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 p-6 rounded-t-xl">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-t-xl"></div>
+        <div className="relative flex items-center space-x-4">
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19.5 4.5L12 12l-7.5-7.5M4.5 19.5L12 12l7.5 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
             </svg>
           </div>
-          <div>
-            <h3 className="font-semibold text-lg">🏥 Medical AI Assistant</h3>
-            <p className="text-green-100 text-sm">Online • Medical Knowledge Base Ready</p>
+          <div className="flex-1">
+            <h3 className="font-semibold text-xl text-white tracking-tight">Medical AI Assistant</h3>
+            <div className="flex items-center space-x-2 mt-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+              <p className="text-white/90 text-sm font-medium">Online • Medical Knowledge Ready</p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center space-x-2 text-white/80">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zM11 8a1 1 0 112 0v4a1 1 0 11-2 0V8z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm">AI Powered</span>
           </div>
         </div>
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
+      <div 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="relative flex-1 overflow-y-auto p-6 space-y-6 max-h-96 bg-gradient-to-b from-slate-50/50 to-transparent"
+      >
         {messages.map((message) => (
           <div
             key={message.id}
@@ -365,69 +397,94 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
                 : message.sender === 'system'
                 ? 'justify-center'
                 : 'justify-start'
-            }`}
+            } animate-in slide-in-from-bottom-2 duration-300`}
           >
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+              className={`max-w-xs lg:max-w-md px-5 py-4 rounded-2xl shadow-sm border transition-all duration-200 hover:shadow-md ${
                 message.sender === 'user'
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-gradient-to-r from-emerald-500 to-blue-500 text-white border-transparent shadow-emerald-500/20'
                   : message.sender === 'system'
-                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
-                  : 'bg-gray-100 text-gray-800'
+                  ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 border-amber-200/50 shadow-amber-500/10'
+                  : 'bg-white text-slate-700 border-slate-200/60 shadow-slate-200/50'
               }`}
             >
-              <p className="text-sm whitespace-pre-line">{message.text}</p>
-              <p className={`text-xs mt-1 ${
+              <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{message.text}</p>
+              <p className={`text-xs mt-2 font-medium ${
                 message.sender === 'user' 
-                  ? 'text-green-100' 
+                  ? 'text-white/80' 
                   : message.sender === 'system'
-                  ? 'text-yellow-600'
-                  : 'text-gray-500'
+                  ? 'text-amber-600/80'
+                  : 'text-slate-500'
               }`}>
                 {message.timestamp}
               </p>
             </div>
           </div>
         ))}
+        
+        {/* Scroll to bottom button */}
+        {!shouldAutoScroll && (
+          <div className="absolute bottom-4 right-4">
+            <button
+              onClick={() => {
+                setShouldAutoScroll(true);
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-105"
+              title="Scroll to bottom"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Language Selector */}
-      <div className="px-4 py-2 border-t border-gray-100">
-        <select 
-          value={selectedLanguage}
-          onChange={(e) => setSelectedLanguage(e.target.value)}
-          className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="en">English</option>
-          <option value="hi">हिंदी (Hindi)</option>
-          <option value="bn">বাংলা (Bengali)</option>
-          <option value="te">తెలుగు (Telugu)</option>
-          <option value="ta">தமிழ் (Tamil)</option>
-          <option value="mr">मराठी (Marathi)</option>
-          <option value="gu">ગુજરાતી (Gujarati)</option>
-          <option value="kn">ಕನ್ನಡ (Kannada)</option>
-          <option value="ml">മലയാളം (Malayalam)</option>
-          <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
-        </select>
+      <div className="px-6 py-4 border-t border-slate-200/60 bg-slate-50/50">
+        <div className="relative">
+          <label className="block text-xs font-semibold text-slate-600 mb-2 tracking-wide uppercase">
+            Preferred Language
+          </label>
+          <select 
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="w-full p-3 text-sm bg-white border border-slate-200/60 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all duration-200 shadow-sm hover:shadow-md font-medium text-slate-700"
+          >
+            <option value="en">🇺🇸 English</option>
+            <option value="hi">🇮🇳 हिंदी (Hindi)</option>
+            <option value="bn">🇧🇩 বাংলা (Bengali)</option>
+            <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+            <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
+            <option value="mr">🇮🇳 मराठी (Marathi)</option>
+            <option value="gu">🇮🇳 ગુજરાતી (Gujarati)</option>
+            <option value="kn">🇮🇳 ಕನ್ನಡ (Kannada)</option>
+            <option value="ml">🇮🇳 മലയാളം (Malayalam)</option>
+            <option value="pa">🇮🇳 ਪੰਜਾਬੀ (Punjabi)</option>
+          </select>
+        </div>
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex space-x-2">
-          <div className="flex-1 relative">
+      <div className="p-6 border-t border-slate-200/60 bg-white">
+        <div className="flex space-x-3">
+          <div className="flex-1 relative group">
             <input
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Ask about symptoms, conditions, medications, or medical information..."
-              className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full p-4 pr-14 text-sm bg-slate-50 border border-slate-200/60 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition-all duration-200 placeholder:text-slate-400 font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               onKeyPress={(e) => e.key === 'Enter' && !voiceButtonState.disabled && handleSendMessage()}
               disabled={isRecording || isTranscribing}
             />
             <button
               onClick={handleVoiceRecording}
               disabled={voiceButtonState.disabled}
-              className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all ${voiceButtonState.className}`}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2.5 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${voiceButtonState.className}`}
               title={
                 isTranscribing 
                   ? 'Processing audio...' 
@@ -442,7 +499,7 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
           <button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim() || isRecording || isTranscribing}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-6 py-4 bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-xl hover:from-emerald-600 hover:to-blue-600 focus:ring-2 focus:ring-emerald-500/20 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 font-medium"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
@@ -454,31 +511,31 @@ This AI assistant cannot provide emergency medical care. Please seek immediate p
         
         {/* Voice Recording Status */}
         {isRecording && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600 flex items-center">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></span>
+          <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/60 rounded-xl shadow-sm">
+            <p className="text-sm text-red-700 flex items-center font-medium">
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse mr-3 shadow-lg shadow-red-500/50"></span>
               Recording in progress... Speak clearly into your microphone
             </p>
-            <p className="text-xs text-red-500 mt-1">Click the microphone button again to stop recording</p>
+            <p className="text-xs text-red-600/80 mt-2 ml-5">Click the microphone button again to stop recording</p>
           </div>
         )}
         
         {isTranscribing && (
-          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-600 flex items-center">
-              <svg className="animate-spin h-4 w-4 text-yellow-600 mr-2" fill="none" viewBox="0 0 24 24">
+          <div className="mt-4 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200/60 rounded-xl shadow-sm">
+            <p className="text-sm text-yellow-700 flex items-center font-medium">
+              <svg className="animate-spin h-5 w-5 text-yellow-600 mr-3" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               Processing your voice message...
             </p>
-            <p className="text-xs text-yellow-600 mt-1">This may take a few seconds</p>
+            <p className="text-xs text-yellow-600/80 mt-2 ml-8">This may take a few seconds</p>
           </div>
         )}
 
         {/* Medical Knowledge Tips */}
         {!isRecording && !isTranscribing && (
-          <div className="mt-3 p-3 bg-green-50 rounded-lg">
+          <div className="mt-4 p-4 bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 border border-emerald-200/60 rounded-xl shadow-sm">
             <p className="text-xs text-green-700 font-medium mb-1">� Medical Knowledge Base:</p>
             <ul className="text-xs text-green-600 space-y-1">
               <li>• Ask about conditions: diabetes, hypertension, migraines, fever, anxiety, depression</li>
